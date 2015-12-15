@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html ng-app="app">
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1><%= title %></h1>
+
+    <ng-view></ng-view>
+
+    <!-- Libraries -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular-route.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular-resource.min.js"></script>
+
+    <!-- Template -->
+    <script type="text/ng-template" id="/MeanStackApp.html">
+      Search: <input type="text" ng-model="search.name">
+      <ul>
+        <li ng-repeat="MeanStackApp in MeanStackApp | filter: search">
+          <input type="checkbox" ng-model="MeanStackApp.completed" ng-change="update($index)">
+          <a ng-show="!editing[$index]" href="#/{{MeanStackApp._id}}">{{MeanStackApp.name}}</a>
+          <button ng-show="!editing[$index]" ng-click="edit($index)">edit</button>
+          <button ng-show="!editing[$index]" ng-click="remove($index)">remove</button>
+
+          <input ng-show="editing[$index]" type="text" ng-model="MeanStackApp.name">
+          <button ng-show="editing[$index]" ng-click="update($index)">update</button>
+          <button ng-show="editing[$index]" ng-click="cancel($index)">cancel</button>
+        </li>
+      </ul>
+      New task <input type="text" ng-model="newTodo"><button ng-click="save()">Create</button>
+    </script>
+
+    <script type="text/ng-template" id="/todoDetails.html">
+      <h1>{{ MeanStackApp.name }}</h1>
+      completed: <input type="checkbox" ng-model="MeanStackApp.completed"><br>
+      note: <textarea ng-model="MeanStackApp.note"></textarea><br><br>
+
+      <button ng-click="update()">update</button>
+      <button ng-click="remove()">remove</button>
+      <a href="/">Cancel</a>
+    </script>
+
+    <script>
+      angular.module('app', ['ngRoute', 'ngResource'])
+
+        //---------------
+        // Services
+        //---------------
+
+        .factory('MeanStackApp', ['$resource', function($resource){
+          return $resource('/MeanStackApp/:id', null, {
+            'update': { method:'PUT' }
+          });
+        }])
+
+        //---------------
+        // Controllers
+        //---------------
+
+        .controller('TodoController', ['$scope', 'MeanStackApp', function ($scope, MeanStackApp) {
+          $scope.editing = [];
+          $scope.MeanStackApp = MeanStackApp.query();
+
+          $scope.save = function(){
+            if(!$scope.newTodo || $scope.newTodo.length < 1) return;
+            var MeanStackApp = new MeanStackApp({ name: $scope.newTodo, completed: false });
+
+            MeanStackApp.$save(function(){
+              $scope.MeanStackApp.push(MeanStackApp);
+              $scope.newTodo = ''; // clear textbox
+            });
+          }
+
+          $scope.update = function(index){
+            var MeanStackApp = $scope.MeanStackApp[index];
+            MeanStackApp.update({id: MeanStackApp._id}, MeanStackApp);
+            $scope.editing[index] = false;
+          }
+
+          $scope.edit = function(index){
+            $scope.editing[index] = angular.copy($scope.MeanStackApp[index]);
+          }
+
+          $scope.cancel = function(index){
+            $scope.MeanStackApp[index] = angular.copy($scope.editing[index]);
+            $scope.editing[index] = false;
+          }
+
+          $scope.remove = function(index){
+            var MeanStackApp = $scope.MeanStackApp[index];
+            MeanStackApp.remove({id: MeanStackApp._id}, function(){
+              $scope.MeanStackApp.splice(index, 1);
+            });
+          }
+        }])
+
+        .controller('TodoDetailCtrl', ['$scope', '$routeParams', 'MeanStackApp', '$location', function ($scope, $routeParams, MeanStackApp, $location) {
+          $scope.MeanStackApp = MeanStackApp.get({id: $routeParams.id });
+
+          $scope.update = function(){
+            MeanStackApp.update({id: $scope.MeanStackApp._id}, $scope.MeanStackApp, function(){
+              $location.url('/');
+            });
+          }
+
+          $scope.remove = function(){
+            MeanStackApp.remove({id: $scope.MeanStackApp._id}, function(){
+              $location.url('/');
+            });
+          }
+        }])
+
+        //---------------
+        // Routes
+        //---------------
+
+        .config(['$routeProvider', function ($routeProvider) {
+          $routeProvider
+            .when('/', {
+              templateUrl: '/MeanStackApp.html',
+              controller: 'TodoController'
+            })
+
+            .when('/:id', {
+              templateUrl: '/todoDetails.html',
+              controller: 'TodoDetailCtrl'
+           });
+        }]);
+    </script>
+  </body>
+</html>
