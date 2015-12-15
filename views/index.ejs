@@ -1,11 +1,14 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
-    <h1><%= title %></h1>
-    <p>Welcome to <%= title %></p>
-  </body>
-</html>
+  // Service
+    .factory('MeanStackApp', ['$http', function($http){
+      return $http.get('/MeanStackApp');
+    }])
+
+    // Controller
+    .controller('MeanStackAppController', ['$scope', 'MeanStackApp', function ($scope, MeanStackApp) {
+      MeanStackApp.success(function(data){
+        $scope.MeanStackApp = data;
+      }).error(function(data, status){
+        console.log(data, status);
+        $scope.MeanStackApp = [];
+      });
+    }])
